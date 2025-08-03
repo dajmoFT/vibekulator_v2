@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pl">
 <head>
@@ -6,13 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Vaporwave Calculator</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
   <style>
     body {
+      background: black;
+      color: white;
       font-family: monospace;
       overflow: hidden;
-      background-color: black;
-      color: white;
     }
 
     #bg-grid {
@@ -20,7 +18,7 @@
       top: 0; left: 0; right: 0; bottom: 0;
       z-index: -1;
       background: url('./background_gif.gif') center/cover no-repeat;
-      opacity: 0.25;
+      opacity: 0.2;
       filter: blur(2px);
     }
 
@@ -28,91 +26,87 @@
       background-color: #2d2d2d;
       border-radius: 9999px;
       padding: 0.75rem 1rem;
-      outline: none;
       color: white;
       width: 100%;
     }
 
     .input-bar::placeholder {
-      color: #aaa;
+      color: #888;
     }
 
-    #graphCanvas {
+    canvas {
       border-radius: 1rem;
-      width: 100%;
-      aspect-ratio: 1 / 1;
     }
 
-    .spotify-player {
-      font-size: 0.875rem;
+    .audio-bar {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
       width: 10%;
-      margin: auto;
-      justify-content: center;
-    }
-
-    .btn {
-      background-color: #444;
-      border-radius: 0.5rem;
+      background-color: rgba(0, 0, 0, 0.8);
       padding: 0.5rem;
-      color: white;
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      font-size: 0.75rem;
+      white-space: nowrap;
     }
 
+    marquee {
+      color: white;
+      font-size: 0.75rem;
+      width: 100px;
+      margin: 0 0.5rem;
+    }
+
+    button {
+      color: white;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
   </style>
 </head>
-<body class="p-4">
+<body>
   <div id="bg-grid"></div>
 
-  <div class="flex h-[calc(100vh-80px)] gap-4 items-center justify-center">
+  <div class="flex h-[calc(100vh-100px)] items-center justify-center gap-8 p-4">
     <!-- Kalkulator -->
-    <div class="w-[40%] flex flex-col gap-4 items-center">
-      <!-- Pasek wyniku -->
-      <div id="display" class="input-bar text-white text-3xl w-full">0</div>
+    <div class="w-[30%] flex flex-col gap-4">
+      <div id="display" class="input-bar text-green-400 text-2xl">0</div>
 
-      <!-- Klawiatura -->
-      <div class="grid grid-cols-5 gap-2 w-full">
-        <button class="btn">7</button>
-        <button class="btn">8</button>
-        <button class="btn">9</button>
-        <button class="btn">/</button>
-        <button class="btn">√</button>
-        <button class="btn">4</button>
-        <button class="btn">5</button>
-        <button class="btn">6</button>
-        <button class="btn">*</button>
-        <button class="btn">^</button>
-        <button class="btn">1</button>
-        <button class="btn">2</button>
-        <button class="btn">3</button>
-        <button class="btn">-</button>
-        <button class="btn">%</button>
-        <button class="btn">0</button>
-        <button class="btn">.</button>
-        <button class="btn">C</button>
-        <button class="btn">=</button>
-        <button class="btn">+</button>
+      <div class="grid grid-cols-5 gap-2">
+        <button class="btn">7</button><button class="btn">8</button><button class="btn">9</button><button class="btn">/</button><button class="btn">√</button>
+        <button class="btn">4</button><button class="btn">5</button><button class="btn">6</button><button class="btn">*</button><button class="btn">^</button>
+        <button class="btn">1</button><button class="btn">2</button><button class="btn">3</button><button class="btn">-</button><button class="btn">%</button>
+        <button class="btn">0</button><button class="btn">.</button><button class="btn">C</button><button class="btn">=</button><button class="btn">+</button>
       </div>
 
-      <!-- Pasek wpisywania funkcji liniowej -->
-      <input id="functionInput" type="text" class="input-bar w-full" placeholder="enter function" />
+      <input id="functionInput" class="input-bar" placeholder="enter function" />
     </div>
 
     <!-- Canvas -->
-    <div class="flex items-center justify-center w-[40%] h-full">
-      <canvas id="graphCanvas" class="bg-black"></canvas>
+    <div class="w-[30%] aspect-square">
+      <canvas id="graphCanvas" class="w-full h-full bg-black"></canvas>
     </div>
   </div>
 
-  <!-- Pasek audio -->
-  <div class="fixed bottom-0 left-0 right-0 p-2 flex items-center spotify-player text-white gap-4">
-    <button onclick="prevTrack()"><<</button>
+  <!-- Audio Player -->
+  <div class="audio-bar">
     <button onclick="toggleMute()">mute</button>
-    <button onclick="nextTrack()">>></button>
+    <marquee id="trackTitle">Loading track...</marquee>
+    <button onclick="prevTrack()">«</button>
+    <button onclick="nextTrack()">»</button>
   </div>
+
+  <!-- YouTube iframe (hidden) -->
+  <iframe id="yt-iframe" style="display:none;" allow="autoplay"></iframe>
 
   <script>
     const display = document.getElementById('display');
     const buttons = document.querySelectorAll('.btn');
-    const functionInput = document.getElementById('functionInput');
     let input = '';
 
     buttons.forEach(btn => {
@@ -120,11 +114,8 @@
         const val = btn.textContent;
         if (val === 'C') input = '';
         else if (val === '=') {
-          try {
-            input = eval(input).toString();
-          } catch {
-            input = 'ERROR';
-          }
+          try { input = eval(input).toString(); }
+          catch { input = 'ERROR'; }
         } else if (val === '√') {
           input = Math.sqrt(parseFloat(input)).toString();
         } else if (val === '^') {
@@ -136,7 +127,7 @@
       });
     });
 
-    // Canvas funkcje
+    // Canvas
     const canvas = document.getElementById('graphCanvas');
     const ctx = canvas.getContext('2d');
 
@@ -147,18 +138,40 @@
 
     function drawAxes() {
       ctx.strokeStyle = 'white';
-      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(0, canvas.height / 2);
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.moveTo(canvas.width / 2, 0);
-      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.moveTo(0, canvas.height/2);
+      ctx.lineTo(canvas.width, canvas.height/2);
+      ctx.moveTo(canvas.width/2, 0);
+      ctx.lineTo(canvas.width/2, canvas.height);
       ctx.stroke();
 
       ctx.fillStyle = 'white';
       ctx.font = '12px monospace';
-      ctx.fillText('x', canvas.width - 15, canvas.height / 2 - 5);
-      ctx.fillText('y', canvas.width / 2 + 5, 15);
+      ctx.fillText('x', canvas.width - 15, canvas.height/2 - 5);
+      ctx.fillText('y', canvas.width/2 + 5, 15);
+    }
+
+    function drawFunction(funcStr) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawAxes();
+
+      const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff8800', '#00ff00'];
+      ctx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
+      ctx.beginPath();
+
+      for (let px = 0; px < canvas.width; px++) {
+        const x = (px - canvas.width/2);
+        let y;
+        try {
+          y = eval(funcStr.replace(/x/g, `(${x})`));
+        } catch {
+          return;
+        }
+        const py = canvas.height/2 - y;
+        if (px === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
     }
 
     function renderDefaultMessage() {
@@ -166,60 +179,41 @@
       ctx.fillStyle = 'white';
       ctx.font = '16px monospace';
       ctx.textAlign = 'center';
-      ctx.fillText('enter a linear function', canvas.width / 2, canvas.height / 2);
+      ctx.fillText('enter a linear function', canvas.width/2, canvas.height/2);
     }
 
-    function drawFunction(a, b) {
-      const colors = ['#ff00ff', '#00ffff', '#ffff00', '#ff8800', '#00ff00'];
-      ctx.strokeStyle = colors[Math.floor(Math.random() * colors.length)];
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      for (let x = -canvas.width / 2; x < canvas.width / 2; x++) {
-        const screenX = canvas.width / 2 + x;
-        const y = a * x + b;
-        const screenY = canvas.height / 2 - y;
-        if (x === -canvas.width / 2) ctx.moveTo(screenX, screenY);
-        else ctx.lineTo(screenX, screenY);
-      }
-      ctx.stroke();
-    }
-
-    function parseAndDrawFunction() {
-      const input = functionInput.value.trim().toLowerCase();
-      const match = input.match(/^y\s*=\s*([\-\d\.]+)?x\s*([\+\-]\s*\d+)?$/);
-      if (!match) {
-        renderDefaultMessage();
-        return;
-      }
-      const a = parseFloat(match[1] || '1');
-      const b = parseFloat((match[2] || '0').replace(/\s+/g, ''));
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawAxes();
-      drawFunction(a, b);
-    }
-
-    functionInput.addEventListener('input', parseAndDrawFunction);
-    window.addEventListener('resize', () => {
-      resizeCanvas();
-      parseAndDrawFunction();
+    functionInput.addEventListener('input', () => {
+      const input = functionInput.value.trim();
+      if (!input) return renderDefaultMessage();
+      const match = input.match(/^y\s*=\s*(.*)/);
+      if (match) drawFunction(match[1]);
+      else renderDefaultMessage();
     });
-    window.addEventListener('load', () => {
+
+    resizeCanvas();
+    renderDefaultMessage();
+    window.addEventListener('resize', () => {
       resizeCanvas();
       renderDefaultMessage();
     });
 
-    // YouTube audio player (tylko losowe z przykładowej listy)
+    // Audio
     const tracks = [
-      {
-        title: 'Vaporwave Mix 1',
-        embed: 'https://www.youtube.com/embed/4xDzrJKXOOY?autoplay=1&mute=0'
-      },
-      {
-        title: 'Vaporwave Long 2',
-        embed: 'https://www.youtube.com/embed/f02mOEt11OQ?autoplay=1&mute=0'
-      }
+      { title: 'Retrowave Mix 1', embed: 'https://www.youtube.com/embed/4xDzrJKXOOY?autoplay=1&mute=0' },
+      { title: 'Lofi City Night', embed: 'https://www.youtube.com/embed/f02mOEt11OQ?autoplay=1&mute=0' },
+      { title: 'Dreamscape Full Mix', embed: 'https://www.youtube.com/embed/GtQdIY3k2C4?autoplay=1&mute=0' },
+      { title: 'Neon Nights 45min', embed: 'https://www.youtube.com/embed/cU8HrO7XuiE?autoplay=1&mute=0' }
     ];
+
     let currentTrack = Math.floor(Math.random() * tracks.length);
+
+    function loadTrack() {
+      const iframe = document.getElementById('yt-iframe');
+      const title = document.getElementById('trackTitle');
+      const track = tracks[currentTrack];
+      iframe.src = track.embed;
+      title.textContent = track.title;
+    }
 
     function nextTrack() {
       currentTrack = (currentTrack + 1) % tracks.length;
@@ -233,19 +227,11 @@
 
     function toggleMute() {
       const iframe = document.getElementById('yt-iframe');
-      const src = iframe.src;
-      iframe.src = src.includes('mute=0') ? src.replace('mute=0', 'mute=1') : src.replace('mute=1', 'mute=0');
-    }
-
-    function loadTrack() {
-      let iframe = document.getElementById('yt-iframe');
-      if (!iframe) {
-        iframe = document.createElement('iframe');
-        iframe.id = 'yt-iframe';
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
+      if (iframe.src.includes('mute=1')) {
+        iframe.src = iframe.src.replace('mute=1', 'mute=0');
+      } else {
+        iframe.src = iframe.src.replace('mute=0', 'mute=1');
       }
-      iframe.src = tracks[currentTrack].embed;
     }
 
     loadTrack();
